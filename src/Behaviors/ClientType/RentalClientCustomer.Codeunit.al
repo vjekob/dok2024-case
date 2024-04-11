@@ -99,4 +99,42 @@ codeunit 50031 "DEMO Rental Client - Customer" implements "DEMO Rental Client Ty
     begin
         exit(true);
     end;
+
+    procedure AcceptsObjectType(var RentalLine: Record "DEMO Rental Line"): Boolean
+    begin
+        if RentalLine.Type = "DEMO Rental Object Type"::FixedAsset then
+            exit(false);
+
+        exit(true);
+    end;
+
+    procedure AcceptsObjectType(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean
+    begin
+        if RentalJnlLine.Type = "DEMO Rental Object Type"::FixedAsset then
+            exit(false);
+
+        exit(true);
+    end;
+
+    procedure AcceptsQuantity(var RentalLine: Record "DEMO Rental Line"): Boolean
+    begin
+        if RentalLine.Type <> "DEMO Rental Object Type"::Resource then
+            exit(true);
+
+        if RentalLine.Quantity < 0 then
+            exit(false);
+
+        exit(true);
+    end;
+
+    procedure AcceptsQuantity(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean
+    begin
+        if RentalJnlLine.Type <> "DEMO Rental Object Type"::Resource then
+            exit(true);
+
+        if RentalJnlLine.Quantity < 0 then
+            exit(false);
+
+        exit(true);
+    end;
 }

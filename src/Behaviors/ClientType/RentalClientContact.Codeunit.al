@@ -119,4 +119,42 @@ codeunit 50033 "DEMO Rental Client - Contact" implements "DEMO Rental Client Typ
     begin
         exit(not RentalJnlLine."Posting Group Mandatory");
     end;
+
+    procedure AcceptsObjectType(var RentalLine: Record "DEMO Rental Line"): Boolean
+    begin
+        if RentalLine.Type = "DEMO Rental Object Type"::FixedAsset then
+            exit(false);
+
+        exit(true);
+    end;
+
+    procedure AcceptsObjectType(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean
+    begin
+        if RentalJnlLine.Type = "DEMO Rental Object Type"::FixedAsset then
+            exit(false);
+
+        exit(true);
+    end;
+
+    procedure AcceptsQuantity(var RentalLine: Record "DEMO Rental Line"): Boolean
+    begin
+        if RentalLine.Quantity >= 0 then
+            exit(true);
+
+        if RentalLine.Type = "DEMO Rental Object Type"::Resource then
+            exit(false);
+
+        exit(true);
+    end;
+
+    procedure AcceptsQuantity(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean
+    begin
+        if RentalJnlLine.Quantity >= 0 then
+            exit(true);
+
+        if RentalJnlLine.Type = "DEMO Rental Object Type"::Resource then
+            exit(false);
+
+        exit(true);
+    end;
 }

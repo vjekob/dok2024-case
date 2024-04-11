@@ -39,13 +39,7 @@ table 50010 "DEMO Rental Journal Line"
             trigger OnValidate()
             var
                 RentalLine: Record "DEMO Rental Journal Line";
-                IsHandled: Boolean;
-                DeleteLinesQst: Label 'Changing %1 will delete all lines. Do you want to continue?', Comment = '%1 is field name.';
             begin
-                OnValidateClientType(Rec, xRec, IsHandled);
-                if IsHandled then
-                    exit;
-
                 ClearAllFields();
             end;
         }
@@ -148,17 +142,13 @@ table 50010 "DEMO Rental Journal Line"
 
             trigger OnValidate()
             var
-                IsHandled: Boolean;
+                ClientType: Interface "DEMO Rental Client Type";
+                ObjectType: Interface "DEMO Rental Object Type";
             begin
-                OnValidateType(Rec, xRec, IsHandled);
-                if IsHandled then
-                    exit;
+                ClientType := Rec."Client Type";
+                ObjectType := Rec.Type;
 
-                if (((Rec."Client Type" = "DEMO Rental Client Type"::Contact) or (Rec."Client Type" = "DEMO Rental Client Type"::Customer)) and
-                    (Type = "DEMO Rental Object Type"::FixedAsset)) or
-                    ((Rec."Client Type" = "DEMO Rental Client Type"::Employee) and
-                    (not (Type in ["DEMO Rental Object Type"::FixedAsset, "DEMO Rental Object Type"::Resource])))
-                then
+                if not (ClientType.AcceptsObjectType(Rec) and ObjectType.AcceptsClientType(Rec)) then
                     Rec.FieldError(Type);
 
                 if Rec.Type = xRec.Type then
@@ -208,18 +198,14 @@ table 50010 "DEMO Rental Journal Line"
 
             trigger OnValidate()
             var
-                IsHandled: Boolean;
+                ClientType: Interface "DEMO Rental Client Type";
+                ObjectType: Interface "DEMO Rental Object Type";
                 MustNotBeNegativeErr: Label 'must not be negative';
             begin
-                OnValidateQuantity(Rec, xRec, IsHandled);
-                if IsHandled then
-                    exit;
+                ClientType := Rec."Client Type";
+                ObjectType := Rec.Type;
 
-                if (
-                    ((Type = "DEMO Rental Object Type"::Resource) and (Rec."Client Type" in ["DEMO Rental Client Type"::Contact, "DEMO Rental Client Type"::Customer]))
-                    or ((Type = "DEMO Rental Object Type"::Item) and (Rec."Client Type" = "DEMO Rental Client Type"::Customer))
-                    or (Type = "DEMO Rental Object Type"::FixedAsset)
-                ) and (Rec.Quantity < 0) then
+                if not (ClientType.AcceptsQuantity(Rec) and (ObjectType.AcceptsQuantity(Rec))) then
                     Rec.FieldError(Quantity, MustNotBeNegativeErr);
 
                 UpdateQuantityBase();
@@ -267,13 +253,10 @@ table 50010 "DEMO Rental Journal Line"
 
             trigger OnValidate()
             var
-                IsHandled: Boolean;
+                ObjectType: Interface "DEMO Rental Object Type";
             begin
-                OnValidateLocationCode(Rec, xRec, IsHandled);
-                if IsHandled then
-                    exit;
-
-                if (Type = "DEMO Rental Object Type"::Resource) then
+                ObjectType := Rec.Type;
+                if not ObjectType.AllowsLocationCode(Rec) then
                     Rec.TestField("Location Code", '');
             end;
         }
@@ -322,25 +305,5 @@ table 50010 "DEMO Rental Journal Line"
     local procedure UpdateQuantityBase()
     begin
         Rec."Quantity (Base)" := Rec.Quantity * Rec."Quantity per Unit of Measure";
-    end;
-
-    [IntegrationEvent(true, false)]
-    local procedure OnValidateClientType(var Rec: Record "DEMO Rental Journal Line"; var xRec: Record "DEMO Rental Journal Line"; var IsHandled: Boolean)
-    begin
-    end;
-
-    [IntegrationEvent(false, false)]
-    local procedure OnValidateType(var Rec: Record "DEMO Rental Journal Line"; var xRec: Record "DEMO Rental Journal Line"; var IsHandled: Boolean);
-    begin
-    end;
-
-    [IntegrationEvent(false, false)]
-    local procedure OnValidateQuantity(var Rec: Record "DEMO Rental Journal Line"; var xRec: Record "DEMO Rental Journal Line"; var IsHandled: Boolean);
-    begin
-    end;
-
-    [IntegrationEvent(false, false)]
-    local procedure OnValidateLocationCode(var Rec: Record "DEMO Rental Journal Line"; var xRec: Record "DEMO Rental Journal Line"; var IsHandled: Boolean);
-    begin
     end;
 }

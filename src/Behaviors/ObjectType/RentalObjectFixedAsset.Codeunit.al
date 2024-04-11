@@ -70,4 +70,52 @@ codeunit 50030 "DEMO Rental Object - FA" implements "DEMO Rental Object Type"
     begin
         Error(CannotChangeUoMErr, Field, "DEMO Rental Object Type"::FixedAsset);
     end;
+
+    procedure AcceptsClientType(var RentalLine: Record "DEMO Rental Line"; RentalHeader: Record "DEMO Rental Header"): Boolean
+    begin
+        if RentalHeader."Client Type" in ["DEMO Rental Client Type"::Customer, "DEMO Rental Client Type"::Contact] then
+            exit(false);
+
+        exit(true);
+    end;
+
+    procedure AcceptsClientType(var RentalJournalLine: Record "DEMO Rental Journal Line"): Boolean
+    begin
+        if RentalJournalLine."Client Type" in ["DEMO Rental Client Type"::Customer, "DEMO Rental Client Type"::Contact] then
+            exit(false);
+
+        exit(true);
+    end;
+
+    procedure AcceptsQuantity(var RentalLine: Record "DEMO Rental Line"; RentalHeader: Record "DEMO Rental Header"): Boolean
+    begin
+        if RentalLine.Quantity >= 0 then
+            exit(true);
+
+        if RentalHeader."Client Type" in ["DEMO Rental Client Type"::Customer, "DEMO Rental Client Type"::Contact, "DEMO Rental Client Type"::Employee] then
+            exit(false);
+
+        exit(true);
+    end;
+
+    procedure AcceptsQuantity(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean
+    begin
+        if RentalJnlLine.Quantity >= 0 then
+            exit(true);
+
+        if RentalJnlLine."Client Type" in ["DEMO Rental Client Type"::Customer, "DEMO Rental Client Type"::Contact, "DEMO Rental Client Type"::Employee] then
+            exit(false);
+
+        exit(true);
+    end;
+
+    procedure AllowsLocationCode(var RentalLine: Record "DEMO Rental Line"): Boolean
+    begin
+        exit(true);
+    end;
+
+    procedure AllowsLocationCode(var RentalJournalLine: Record "DEMO Rental Journal Line"): Boolean
+    begin
+        exit(true);
+    end;
 }

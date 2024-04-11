@@ -16,4 +16,8 @@ interface "DEMO Rental Client Type"
     procedure CanChangeEMail(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean;
     procedure CanChangeGenBusPostingGroup(var RentalHeader: Record "DEMO Rental Header"): Boolean;
     procedure CanChangeGenBusPostingGroup(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean;
+    procedure AcceptsObjectType(var RentalLine: Record "DEMO Rental Line"): Boolean;
+    procedure AcceptsObjectType(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean;
+    procedure AcceptsQuantity(var RentalLine: Record "DEMO Rental Line"): Boolean;
+    procedure AcceptsQuantity(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean;
 }
