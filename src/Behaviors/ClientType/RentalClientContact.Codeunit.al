@@ -90,8 +90,33 @@ codeunit 50033 "DEMO Rental Client - Contact" implements "DEMO Rental Client Typ
         ValidateConstraints();
     end;
 
-    procedure CanChangeClientName(): Boolean
+    procedure CanChangeClientName(var RentalHeader: Record "DEMO Rental Header"): Boolean
     begin
         exit(false);
+    end;
+
+    procedure CanChangeClientName(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean
+    begin
+        exit(false);
+    end;
+
+    procedure CanChangeEMail(var RentalHeader: Record "DEMO Rental Header"): Boolean
+    begin
+        exit(false);
+    end;
+
+    procedure CanChangeEMail(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean
+    begin
+        exit(false);
+    end;
+
+    procedure CanChangeGenBusPostingGroup(var RentalHeader: Record "DEMO Rental Header"): Boolean
+    begin
+        exit(not RentalHeader."Posting Group Mandatory");
+    end;
+
+    procedure CanChangeGenBusPostingGroup(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean
+    begin
+        exit(not RentalJnlLine."Posting Group Mandatory");
     end;
 }

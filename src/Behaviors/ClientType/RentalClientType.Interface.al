@@ -10,5 +10,10 @@ interface "DEMO Rental Client Type"
     procedure AssignDefaults(var RentalHeader: Record "DEMO Rental Header");
     procedure AssignDefaults(var RentalJournalLine: Record "DEMO Rental Journal Line");
     procedure AllowChangePostingGroupMandatory(): Boolean;
-    procedure CanChangeClientName(): Boolean;
+    procedure CanChangeClientName(var RentalHeader: Record "DEMO Rental Header"): Boolean;
+    procedure CanChangeClientName(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean;
+    procedure CanChangeEMail(var RentalHeader: Record "DEMO Rental Header"): Boolean;
+    procedure CanChangeEMail(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean;
+    procedure CanChangeGenBusPostingGroup(var RentalHeader: Record "DEMO Rental Header"): Boolean;
+    procedure CanChangeGenBusPostingGroup(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean;
 }

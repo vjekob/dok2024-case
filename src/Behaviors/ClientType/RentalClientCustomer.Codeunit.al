@@ -70,7 +70,32 @@ codeunit 50031 "DEMO Rental Client - Customer" implements "DEMO Rental Client Ty
         ValidateConstraints();
     end;
 
-    procedure CanChangeClientName(): Boolean
+    procedure CanChangeClientName(var RentalHeader: Record "DEMO Rental Header"): Boolean
+    begin
+        exit(true);
+    end;
+
+    procedure CanChangeClientName(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean
+    begin
+        exit(true);
+    end;
+
+    procedure CanChangeEMail(var RentalHeader: Record "DEMO Rental Header"): Boolean
+    begin
+        exit(true);
+    end;
+
+    procedure CanChangeEMail(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean
+    begin
+        exit(true);
+    end;
+
+    procedure CanChangeGenBusPostingGroup(var RentalHeader: Record "DEMO Rental Header"): Boolean
+    begin
+        exit(true);
+    end;
+
+    procedure CanChangeGenBusPostingGroup(var RentalJnlLine: Record "DEMO Rental Journal Line"): Boolean
     begin
         exit(true);
     end;

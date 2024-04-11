@@ -85,13 +85,10 @@ table 50010 "DEMO Rental Journal Line"
 
             trigger OnValidate()
             var
-                IsHandled: Boolean;
+                ClientType: Interface "DEMO Rental Client Type";
             begin
-                OnValidateClientName(Rec, xRec, IsHandled);
-                if IsHandled then
-                    exit;
-
-                if Rec."Client Type" in ["DEMO Rental Client Type"::Contact, "DEMO Rental Client Type"::Employee] then
+                ClientType := Rec."Client Type";
+                if not ClientType.CanChangeClientName(Rec) then
                     Rec.FieldError("Client Type");
             end;
         }
@@ -102,13 +99,10 @@ table 50010 "DEMO Rental Journal Line"
 
             trigger OnValidate()
             var
-                IsHandled: Boolean;
+                ClientType: Interface "DEMO Rental Client Type";
             begin
-                OnValidateEMail(Rec, xRec, IsHandled);
-                if IsHandled then
-                    exit;
-
-                if Rec."Client Type" in ["DEMO Rental Client Type"::Contact, "DEMO Rental Client Type"::Employee] then
+                ClientType := Rec."Client Type";
+                if not ClientType.CanChangeEMail(Rec) then
                     Rec.FieldError("Client Type");
             end;
         }
@@ -125,17 +119,12 @@ table 50010 "DEMO Rental Journal Line"
 
             trigger OnValidate()
             var
-                IsHandled: Boolean;
+                ClientType: Interface "DEMO Rental Client Type";
                 CannotChangePostingGroupErr: Label 'Posting Group cannot be changed for %1 %2.', Comment = '%1 is client type, %2 is client no.';
             begin
-                OnValidateGenBusPostingGroup(Rec, xRec, IsHandled);
-                if IsHandled then
-                    exit;
-
-                if (Rec."Client Type" = "DEMO Rental Client Type"::Employee) or
-                    ((Rec."Client Type" = "DEMO Rental Client Type"::Contact) and (Rec."Posting Group Mandatory"))
-                then
-                    Error(CannotChangePostingGroupErr, Rec."Client Type", Rec."Client No.");
+                ClientType := Rec."Client Type";
+                if not ClientType.CanChangeGenBusPostingGroup(Rec) then
+                    Rec.FieldError("Gen. Bus. Posting Group");
             end;
         }
 
@@ -337,21 +326,6 @@ table 50010 "DEMO Rental Journal Line"
 
     [IntegrationEvent(true, false)]
     local procedure OnValidateClientType(var Rec: Record "DEMO Rental Journal Line"; var xRec: Record "DEMO Rental Journal Line"; var IsHandled: Boolean)
-    begin
-    end;
-
-    [IntegrationEvent(true, false)]
-    local procedure OnValidateClientName(var Rec: Record "DEMO Rental Journal Line"; var xRec: Record "DEMO Rental Journal Line"; var IsHandled: Boolean)
-    begin
-    end;
-
-    [IntegrationEvent(true, false)]
-    local procedure OnValidateEMail(var Rec: Record "DEMO Rental Journal Line"; var xRec: Record "DEMO Rental Journal Line"; var IsHandled: Boolean)
-    begin
-    end;
-
-    [IntegrationEvent(true, false)]
-    local procedure OnValidateGenBusPostingGroup(var Rec: Record "DEMO Rental Journal Line"; var xRec: Record "DEMO Rental Journal Line"; var IsHandled: Boolean)
     begin
     end;
 
