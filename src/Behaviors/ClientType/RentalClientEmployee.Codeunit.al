@@ -68,4 +68,9 @@ codeunit 50032 "DEMO Rental Client - Employee" implements "DEMO Rental Client Ty
         if HasConstraints() then
             ValidateConstraints();
     end;
+
+    procedure CanChangeClientName(): Boolean
+    begin
+        exit(false);
+    end;
 }

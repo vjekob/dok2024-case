@@ -69,4 +69,9 @@ codeunit 50031 "DEMO Rental Client - Customer" implements "DEMO Rental Client Ty
         _customer.TestField(Blocked, "Customer Blocked"::" ");
         ValidateConstraints();
     end;
+
+    procedure CanChangeClientName(): Boolean
+    begin
+        exit(true);
+    end;
 }

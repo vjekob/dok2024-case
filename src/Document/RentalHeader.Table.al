@@ -79,13 +79,10 @@ table 50007 "DEMO Rental Header"
 
             trigger OnValidate()
             var
-                IsHandled: Boolean;
+                ClientType: Interface "DEMO Rental Client Type";
             begin
-                OnValidateClientName(Rec, xRec, IsHandled);
-                if IsHandled then
-                    exit;
-
-                if Rec."Client Type" in ["DEMO Rental Client Type"::Contact, "DEMO Rental Client Type"::Employee] then
+                ClientType := Rec."Client Type";
+                if not ClientType.CanChangeClientName() then
                     Rec.FieldError("Client Type");
             end;
         }
@@ -163,22 +160,12 @@ table 50007 "DEMO Rental Header"
     end;
 
     [IntegrationEvent(true, false)]
-    local procedure OnValidateClientName(var Rec: Record "DEMO Rental Header"; var xRec: Record "DEMO Rental Header"; var IsHandled: Boolean)
-    begin
-    end;
-
-    [IntegrationEvent(true, false)]
     local procedure OnValidateEMail(var Rec: Record "DEMO Rental Header"; var xRec: Record "DEMO Rental Header"; var IsHandled: Boolean)
     begin
     end;
 
     [IntegrationEvent(true, false)]
     local procedure OnValidateGenBusPostingGroup(var Rec: Record "DEMO Rental Header"; var xRec: Record "DEMO Rental Header"; var IsHandled: Boolean)
-    begin
-    end;
-
-    [IntegrationEvent(true, false)]
-    local procedure OnValidatePostingGroupMandatory(var Rec: Record "DEMO Rental Header"; var xRec: Record "DEMO Rental Header"; var IsHandled: Boolean)
     begin
     end;
 }

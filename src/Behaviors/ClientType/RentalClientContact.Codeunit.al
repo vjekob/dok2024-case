@@ -89,4 +89,9 @@ codeunit 50033 "DEMO Rental Client - Contact" implements "DEMO Rental Client Typ
 
         ValidateConstraints();
     end;
+
+    procedure CanChangeClientName(): Boolean
+    begin
+        exit(false);
+    end;
 }
