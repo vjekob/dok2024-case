@@ -1,6 +1,54 @@
 namespace Vjeko.Demos.Rental;
 
+using Microsoft.Sales.Customer;
+
 codeunit 50031 "DEMO Rental Client - Customer" implements "DEMO Rental Client Type"
 {
+    var
+        _customer: Record Customer;
 
+    procedure Initialize(Customer: Record Customer)
+    begin
+        _customer := Customer;
+    end;
+
+    procedure Initialize(No: Code[20])
+    begin
+        _customer.SetAutoCalcFields("Balance Due (LCY)");
+        _customer.Get(No);
+    end;
+
+    procedure ValidateRequirements()
+    begin
+        _customer.TestField(Blocked, "Customer Blocked"::" ");
+        _customer.TestField("E-Mail");
+        _customer.TestField("Customer Posting Group");
+        _customer.TestField("Gen. Bus. Posting Group");
+        _customer.TestField("VAT Bus. Posting Group");
+        _customer.TestField("Payment Terms Code");
+    end;
+
+    procedure HasConstraints(): Boolean
+    begin
+        exit(true);
+    end;
+
+    procedure ValidateConstraints(): Boolean
+    var
+        RentalSetup: Record "DEMO Rental Setup";
+        MaximumBalanceExceededErr: Label 'Unable to proceed with rental for customer %1: outstanding balance exceeds the maximum allowed limit.', Comment = '%1 is customer no.';
+    begin
+        RentalSetup.Get();
+        RentalSetup.TestField("Maximum Balance (LCY)");
+        _customer.CalcFields("Balance Due (LCY)");
+        if _customer."Balance Due (LCY)" > RentalSetup."Maximum Balance (LCY)" then
+            Error(MaximumBalanceExceededErr, _customer."No.");
+    end;
+
+    procedure AssignDefaults(var RentalHeader: Record "DEMO Rental Header")
+    begin
+        RentalHeader."Client Name" := _customer.Name;
+        RentalHeader."E-Mail" := _customer."E-Mail";
+        RentalHeader."Gen. Bus. Posting Group" := _customer."Gen. Bus. Posting Group";
+    end;
 }

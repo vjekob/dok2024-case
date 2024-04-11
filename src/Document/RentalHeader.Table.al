@@ -60,101 +60,19 @@ table 50007 "DEMO Rental Header"
                 Contact, ContactCompany : Record Contact;
                 Employee: Record Employee;
                 RentalSetup: Record "DEMO Rental Setup";
-                ContactBusinessRelation: Record "Contact Business Relation";
-                Union: Record Union;
-                IsHandled: Boolean;
-                MaximumBalanceExceededErr: Label 'Unable to proceed with rental for customer %1: outstanding balance exceeds the maximum allowed limit.', Comment = '%1 is customer no.';
-                RelatedCustomerBlockedErr: Label 'Unable to proceed with rental for contact %1: related customer %2 is blocked.', Comment = '%1 is contact no., %2 is customer no.';
-                RelatedCustomerExceedsBalanceErr: Label 'Unable to proceed with rental for contact %1: related customer %2 exceeds the maximum allowed balance.', Comment = '%1 is contact no., %2 is customer no.';
-                UnionDoesNotAllowRentalErr: Label 'Unable to proceed with rental for employee %1: the employee belongs to union %2 that does not allow rentals.', Comment = '%1 is employee no., %2 is union code.';
+                ClientType: Interface "DEMO Rental Client Type";
             begin
-                OnValidateClientNo(Rec, xRec, IsHandled);
-                if IsHandled then
-                    exit;
-
                 if Rec."Client No." = '' then
                     exit;
 
                 Rec."Posting Group Mandatory" := false;
 
-                case Rec."Client Type" of
-                    "DEMO Rental Client Type"::Customer:
-                        begin
-                            Customer.Get(Rec."Client No.");
-                            Customer.TestField(Blocked, "Customer Blocked"::" ");
-                            Customer.TestField("E-Mail");
-                            Customer.TestField("Customer Posting Group");
-                            Customer.TestField("Gen. Bus. Posting Group");
-                            Customer.TestField("VAT Bus. Posting Group");
-                            Customer.TestField("Payment Terms Code");
-
-                            RentalSetup.Get();
-                            RentalSetup.TestField("Maximum Balance (LCY)");
-                            Customer.CalcFields("Balance Due (LCY)");
-                            if Customer."Balance Due (LCY)" > RentalSetup."Maximum Balance (LCY)" then
-                                Error(MaximumBalanceExceededErr, Rec."Client No.");
-
-                            Rec."Client Name" := Customer.Name;
-                            Rec."E-Mail" := Customer."E-Mail";
-                            Rec."Gen. Bus. Posting Group" := Customer."Gen. Bus. Posting Group";
-                        end;
-                    "DEMO Rental Client Type"::Contact:
-                        begin
-                            Contact.Get(Rec."Client No.");
-                            Contact.TestField(Type, "Contact Type"::Person);
-                            Contact.TestField("Privacy Blocked", false);
-                            Contact.TestField(Name);
-                            Contact.TestField("E-Mail");
-                            Contact.TestField(Address);
-                            Contact.TestField("Post Code");
-                            Contact.TestField(City);
-                            if Contact.Minor then
-                                Contact.TestField("Parental Consent Received");
-
-                            if Contact."Company No." <> '' then begin
-                                ContactCompany.Get(Contact."Company No.");
-                                if ContactCompany."Contact Business Relation" = "Contact Business Relation"::Customer then begin
-                                    ContactBusinessRelation.SetRange("Contact No.", ContactCompany."No.");
-                                    ContactBusinessRelation.SetRange("Link to Table", "Contact Business Relation Link To Table"::Customer);
-                                    ContactBusinessRelation.SetFilter("No.", '<>%1', '');
-                                    if ContactBusinessRelation.FindSet() then
-                                        repeat
-                                            Customer.SetAutoCalcFields("Balance Due (LCY)");
-                                            if Customer.Get(ContactBusinessRelation."No.") then begin
-                                                if Customer.Blocked <> "Customer Blocked"::" " then
-                                                    Error(RelatedCustomerBlockedErr, Rec."Client No.", Customer."No.");
-                                                if Customer."Balance Due (LCY)" > RentalSetup."Maximum Balance (LCY)" then
-                                                    Error(RelatedCustomerExceedsBalanceErr, Rec."Client No.", Customer."No.");
-                                            end;
-                                        until ContactBusinessRelation.Next() = 0;
-                                end;
-                            end;
-
-                            Rec."Client Name" := Contact.Name;
-                            Rec."E-Mail" := Contact."E-Mail";
-                            Rec."Gen. Bus. Posting Group" := Contact."DEMO Gen. Bus. Posting Group";
-                            Rec."Posting Group Mandatory" := Contact."DEMO Posting Group Mandatory";
-                        end;
-                    "DEMO Rental Client Type"::Employee:
-                        begin
-                            Employee.Get(Rec."Client No.");
-                            Employee.TestField("Privacy Blocked", false);
-                            Employee.TestField(Status, "Employee Status"::Active);
-                            Employee.TestField("E-Mail");
-
-                            if Employee."Union Code" <> '' then begin
-                                Employee.TestField("Union Membership No.");
-                                Union.Get(Employee."Union Code");
-                                if Union."DEMO Rental Allowed" = false then
-                                    Error(UnionDoesNotAllowRentalErr, Rec."Client No.", Union."Code");
-                            end;
-
-                            Rec."Client Name" := Employee.FullName();
-                            Rec."E-Mail" := Employee."E-Mail";
-                            RentalSetup.Get();
-                            Rec."Gen. Bus. Posting Group" := RentalSetup."Employee Gen.Bus.Posting Group";
-                        end;
-                end;
+                ClientType := Rec."Client Type";
+                ClientType.Initialize(Rec."Client No.");
+                ClientType.ValidateRequirements();
+                if ClientType.HasConstraints() then
+                    ClientType.ValidateConstraints();
+                ClientType.AssignDefaults(Rec);
             end;
         }
 
@@ -252,11 +170,6 @@ table 50007 "DEMO Rental Header"
 
     [IntegrationEvent(true, false)]
     local procedure OnValidateClientType(var Rec: Record "DEMO Rental Header"; var xRec: Record "DEMO Rental Header"; var IsHandled: Boolean)
-    begin
-    end;
-
-    [IntegrationEvent(true, false)]
-    local procedure OnValidateClientNo(var Rec: Record "DEMO Rental Header"; var xRec: Record "DEMO Rental Header"; var IsHandled: Boolean)
     begin
     end;
 
