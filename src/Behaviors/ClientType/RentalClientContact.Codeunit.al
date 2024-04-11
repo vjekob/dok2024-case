@@ -48,7 +48,6 @@ codeunit 50033 "DEMO Rental Client - Contact" implements "DEMO Rental Client Typ
             if ContactBusinessRelation.FindSet() then
                 repeat
                     ClientTypeCustomer.Initialize(Customer);
-                    ;
                     ClientTypeCustomer.ValidateConstraints();
                     if Customer.Blocked <> "Customer Blocked"::" " then
                         Error(RelatedCustomerBlockedErr, _contact."No.", Customer."No.");
@@ -62,5 +61,32 @@ codeunit 50033 "DEMO Rental Client - Contact" implements "DEMO Rental Client Typ
         RentalHeader."E-Mail" := _contact."E-Mail";
         RentalHeader."Gen. Bus. Posting Group" := _contact."DEMO Gen. Bus. Posting Group";
         RentalHeader."Posting Group Mandatory" := _contact."DEMO Posting Group Mandatory";
+    end;
+
+    procedure AssignDefaults(var RentalJournalLine: Record "DEMO Rental Journal Line")
+    begin
+        RentalJournalLine."Client Name" := _contact.Name;
+        RentalJournalLine."E-Mail" := _contact."E-Mail";
+        RentalJournalLine."Gen. Bus. Posting Group" := _contact."DEMO Gen. Bus. Posting Group";
+        RentalJournalLine."Posting Group Mandatory" := _contact."DEMO Posting Group Mandatory";
+    end;
+
+    procedure AllowChangePostingGroupMandatory(): Boolean
+    var
+        ConfirmChangeQst: Label 'Changing Posting Group Mandatory is not recommended as it may affect posting. Do you want to continue?';
+    begin
+        if not Confirm(ConfirmChangeQst, false) then
+            Error('');
+        exit(true);
+    end;
+
+    procedure ValidatePostingRequirements()
+    begin
+        _contact.TestField(Type, "Contact Type"::"Person");
+        _contact.TestField("Privacy Blocked", false);
+        if _contact.Minor then
+            _contact.TestField("Parental Consent Received");
+
+        ValidateConstraints();
     end;
 }

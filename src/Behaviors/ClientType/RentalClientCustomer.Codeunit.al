@@ -51,4 +51,22 @@ codeunit 50031 "DEMO Rental Client - Customer" implements "DEMO Rental Client Ty
         RentalHeader."E-Mail" := _customer."E-Mail";
         RentalHeader."Gen. Bus. Posting Group" := _customer."Gen. Bus. Posting Group";
     end;
+
+    procedure AssignDefaults(var RentalJournalLine: Record "DEMO Rental Journal Line")
+    begin
+        RentalJournalLine."Client Name" := _customer.Name;
+        RentalJournalLine."E-Mail" := _customer."E-Mail";
+        RentalJournalLine."Gen. Bus. Posting Group" := _customer."Gen. Bus. Posting Group";
+    end;
+
+    procedure AllowChangePostingGroupMandatory(): Boolean
+    begin
+        exit(false);
+    end;
+
+    procedure ValidatePostingRequirements()
+    begin
+        _customer.TestField(Blocked, "Customer Blocked"::" ");
+        ValidateConstraints();
+    end;
 }

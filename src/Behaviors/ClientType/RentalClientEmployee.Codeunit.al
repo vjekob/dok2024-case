@@ -45,4 +45,27 @@ codeunit 50032 "DEMO Rental Client - Employee" implements "DEMO Rental Client Ty
         RentalHeader."E-Mail" := _employee."E-Mail";
         RentalHeader."Gen. Bus. Posting Group" := RentalSetup."Employee Gen.Bus.Posting Group";
     end;
+
+    procedure AssignDefaults(var RentalJournalLine: Record "DEMO Rental Journal Line")
+    var
+        RentalSetup: Record "DEMO Rental Setup";
+    begin
+        RentalSetup.Get();
+        RentalJournalLine."Client Name" := _employee.FullName();
+        RentalJournalLine."E-Mail" := _employee."E-Mail";
+        RentalJournalLine."Gen. Bus. Posting Group" := RentalSetup."Employee Gen.Bus.Posting Group";
+    end;
+
+    procedure AllowChangePostingGroupMandatory(): Boolean
+    begin
+        exit(false);
+    end;
+
+    procedure ValidatePostingRequirements()
+    begin
+        _employee.TestField("Privacy Blocked", false);
+        _employee.TestField(Status, "Employee Status"::Active);
+        if HasConstraints() then
+            ValidateConstraints();
+    end;
 }

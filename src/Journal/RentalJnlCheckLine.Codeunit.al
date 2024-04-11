@@ -26,6 +26,7 @@ codeunit 50027 "DEMO Rental Jnl.-Check Line"
         Employee: Record Employee;
         ContactBusinessRelation: Record "Contact Business Relation";
         Union: Record Union;
+        ClientType: Interface "DEMO Rental Client Type";
         IsHandled: Boolean;
         InvalidClientTypeObjectTypeCombinationErr: Label 'Invalid client type/object type combination: %1 %2 and %3 %4', Comment = '%1 and %3 are field captions, %2 and %4 are field values';
         InvalidQtyForClientTypeObjectTypeCombinationErr: Label 'Invalid quantity for client type/object type combination: %1 %2 and %3 %4', Comment = '%1 and %3 are field captions, %2 and %4 are field values';
@@ -73,61 +74,9 @@ codeunit 50027 "DEMO Rental Jnl.-Check Line"
                 Error(InvalidQtyForClientTypeObjectTypeCombinationErr, RentalJnlLine.FieldCaption("Client Type"), RentalJnlLine."Client Type",
                     RentalJnlLine.FieldCaption(Type), RentalJnlLine.Type);
 
-        IsHandled := false;
-        OnBeforeCheckClient(RentalJnlLine, IsHandled);
-        if not IsHandled then
-            case RentalJnlLine."Client Type" of
-                "DEMO Rental Client Type"::Customer:
-                    begin
-                        Customer.Get(RentalJnlLine."Client No.");
-                        Customer.TestField(Blocked, "Customer Blocked"::" ");
-                        Customer.CalcFields("Balance Due (LCY)");
-                        if Customer."Balance Due (LCY)" > RentalSetup."Maximum Balance (LCY)" then
-                            Error(MaximumBalanceExceededErr, RentalJnlLine."Client No.");
-                    end;
-
-                "DEMO Rental Client Type"::Contact:
-                    begin
-                        Contact.Get(RentalJnlLine."Client No.");
-                        Contact.TestField(Type, "Contact Type"::"Person");
-                        Contact.TestField("Privacy Blocked", false);
-                        if Contact.Minor then
-                            Contact.TestField("Parental Consent Received");
-
-                        if Contact."Company No." <> '' then begin
-                            ContactCompany.Get(Contact."Company No.");
-                            if ContactCompany."Contact Business Relation" = "Contact Business Relation"::Customer then begin
-                                ContactBusinessRelation.SetRange("Contact No.", ContactCompany."No.");
-                                ContactBusinessRelation.SetRange("Link to Table", "Contact Business Relation Link To Table"::Customer);
-                                ContactBusinessRelation.SetFilter("No.", '<>%1', '');
-                                if ContactBusinessRelation.FindSet() then
-                                    repeat
-                                        Customer.SetAutoCalcFields("Balance Due (LCY)");
-                                        if Customer.Get(ContactBusinessRelation."No.") then begin
-                                            if Customer.Blocked <> "Customer Blocked"::" " then
-                                                Error(RelatedCustomerBlockedErr, RentalJnlLine."Client No.", Customer."No.");
-                                            if Customer."Balance Due (LCY)" > RentalSetup."Maximum Balance (LCY)" then
-                                                Error(RelatedCustomerExceedsBalanceErr, RentalJnlLine."Client No.", Customer."No.");
-                                        end;
-                                    until ContactBusinessRelation.Next() = 0;
-                            end;
-                        end;
-                    end;
-
-                "DEMO Rental Client Type"::Employee:
-                    begin
-                        Employee.Get(RentalJnlLine."Client No.");
-                        Employee.TestField("Privacy Blocked", false);
-                        Employee.TestField(Status, "Employee Status"::Active);
-
-                        if Employee."Union Code" <> '' then begin
-                            Employee.TestField("Union Membership No.");
-                            Union.Get(Employee."Union Code");
-                            if Union."DEMO Rental Allowed" = false then
-                                Error(UnionDoesNotAllowRentalErr, RentalJnlLine."Client No.", Union."Code");
-                        end;
-                    end;
-            end;
+        ClientType := RentalJnlLine."Client Type";
+        ClientType.Initialize(RentalJnlLine."Client No.");
+        ClientType.ValidatePostingRequirements();
 
         OnAfterRunCheck(RentalJnlLine);
     end;

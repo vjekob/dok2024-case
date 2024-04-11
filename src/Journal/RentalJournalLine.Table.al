@@ -4,8 +4,6 @@ using Microsoft.Sales.Customer;
 using Microsoft.CRM.Contact;
 using Microsoft.HumanResources.Employee;
 using Microsoft.Finance.GeneralLedger.Setup;
-using Microsoft.HumanResources.Setup;
-using Microsoft.CRM.BusinessRelation;
 using Microsoft.Inventory.Item;
 using Microsoft.Projects.Resources.Resource;
 using Microsoft.FixedAssets.FixedAsset;
@@ -59,107 +57,25 @@ table 50010 "DEMO Rental Journal Line"
             if ("Client Type" = const(Contact)) Contact else
             if ("Client Type" = const(Employee)) Employee;
 
+
             trigger OnValidate()
             var
                 Customer: Record Customer;
                 Contact, ContactCompany : Record Contact;
                 Employee: Record Employee;
-                RentalSetup: Record "DEMO Rental Setup";
-                ContactBusinessRelation: Record "Contact Business Relation";
-                Union: Record Union;
-                IsHandled: Boolean;
-                MaximumBalanceExceededErr: Label 'Unable to proceed with rental for customer %1: outstanding balance exceeds the maximum allowed limit.', Comment = '%1 is customer no.';
-                RelatedCustomerBlockedErr: Label 'Unable to proceed with rental for contact %1: related customer %2 is blocked.', Comment = '%1 is contact no., %2 is customer no.';
-                RelatedCustomerExceedsBalanceErr: Label 'Unable to proceed with rental for contact %1: related customer %2 exceeds the maximum allowed balance.', Comment = '%1 is contact no., %2 is customer no.';
-                UnionDoesNotAllowRentalErr: Label 'Unable to proceed with rental for employee %1: the employee belongs to union %2 that does not allow rentals.', Comment = '%1 is employee no., %2 is union code.';
+                ClientType: Interface "DEMO Rental Client Type";
             begin
-                OnValidateClientNo(Rec, xRec, IsHandled);
-                if IsHandled then
-                    exit;
-
                 if Rec."Client No." = '' then
                     exit;
 
                 Rec."Posting Group Mandatory" := false;
 
-                case Rec."Client Type" of
-                    "DEMO Rental Client Type"::Customer:
-                        begin
-                            Customer.Get(Rec."Client No.");
-                            Customer.TestField(Blocked, "Customer Blocked"::" ");
-                            Customer.TestField("E-Mail");
-                            Customer.TestField("Customer Posting Group");
-                            Customer.TestField("Gen. Bus. Posting Group");
-                            Customer.TestField("VAT Bus. Posting Group");
-                            Customer.TestField("Payment Terms Code");
-
-                            RentalSetup.Get();
-                            RentalSetup.TestField("Maximum Balance (LCY)");
-                            Customer.CalcFields("Balance Due (LCY)");
-                            if Customer."Balance Due (LCY)" > RentalSetup."Maximum Balance (LCY)" then
-                                Error(MaximumBalanceExceededErr, Rec."Client No.");
-
-                            Rec."Client Name" := Customer.Name;
-                            Rec."E-Mail" := Customer."E-Mail";
-                            Rec."Gen. Bus. Posting Group" := Customer."Gen. Bus. Posting Group";
-                        end;
-                    "DEMO Rental Client Type"::Contact:
-                        begin
-                            Contact.Get(Rec."Client No.");
-                            Contact.TestField(Type, "Contact Type"::Person);
-                            Contact.TestField("Privacy Blocked", false);
-                            Contact.TestField(Name);
-                            Contact.TestField("E-Mail");
-                            Contact.TestField(Address);
-                            Contact.TestField("Post Code");
-                            Contact.TestField(City);
-                            if Contact.Minor then
-                                Contact.TestField("Parental Consent Received");
-
-                            if Contact."Company No." <> '' then begin
-                                ContactCompany.Get(Contact."Company No.");
-                                if ContactCompany."Contact Business Relation" = "Contact Business Relation"::Customer then begin
-                                    ContactBusinessRelation.SetRange("Contact No.", ContactCompany."No.");
-                                    ContactBusinessRelation.SetRange("Link to Table", "Contact Business Relation Link To Table"::Customer);
-                                    ContactBusinessRelation.SetFilter("No.", '<>%1', '');
-                                    if ContactBusinessRelation.FindSet() then
-                                        repeat
-                                            Customer.SetAutoCalcFields("Balance Due (LCY)");
-                                            if Customer.Get(ContactBusinessRelation."No.") then begin
-                                                if Customer.Blocked <> "Customer Blocked"::" " then
-                                                    Error(RelatedCustomerBlockedErr, Rec."Client No.", Customer."No.");
-                                                if Customer."Balance Due (LCY)" > RentalSetup."Maximum Balance (LCY)" then
-                                                    Error(RelatedCustomerExceedsBalanceErr, Rec."Client No.", Customer."No.");
-                                            end;
-                                        until ContactBusinessRelation.Next() = 0;
-                                end;
-                            end;
-
-                            Rec."Client Name" := Contact.Name;
-                            Rec."E-Mail" := Contact."E-Mail";
-                            Rec."Gen. Bus. Posting Group" := Contact."DEMO Gen. Bus. Posting Group";
-                            Rec."Posting Group Mandatory" := Contact."DEMO Posting Group Mandatory";
-                        end;
-                    "DEMO Rental Client Type"::Employee:
-                        begin
-                            Employee.Get(Rec."Client No.");
-                            Employee.TestField("Privacy Blocked", false);
-                            Employee.TestField(Status, "Employee Status"::Active);
-                            Employee.TestField("E-Mail");
-
-                            if Employee."Union Code" <> '' then begin
-                                Employee.TestField("Union Membership No.");
-                                Union.Get(Employee."Union Code");
-                                if Union."DEMO Rental Allowed" = false then
-                                    Error(UnionDoesNotAllowRentalErr, Rec."Client No.", Union."Code");
-                            end;
-
-                            Rec."Client Name" := Employee.FullName();
-                            Rec."E-Mail" := Employee."E-Mail";
-                            RentalSetup.Get();
-                            Rec."Gen. Bus. Posting Group" := RentalSetup."Employee Gen.Bus.Posting Group";
-                        end;
-                end;
+                ClientType := Rec."Client Type";
+                ClientType.Initialize(Rec."Client No.");
+                ClientType.ValidateRequirements();
+                if ClientType.HasConstraints() then
+                    ClientType.ValidateConstraints();
+                ClientType.AssignDefaults(Rec);
             end;
         }
 
@@ -229,20 +145,11 @@ table 50010 "DEMO Rental Journal Line"
 
             trigger OnValidate()
             var
-                IsHandled: Boolean;
-                ConfirmChangeQst: Label 'Changing %1 is not recommended as it may affect posting. Do you want to continue?', Comment = '%1 is field name.';
+                ClientType: Interface "DEMO Rental Client Type";
             begin
-                OnValidatePostingGroupMandatory(Rec, xRec, IsHandled);
-                if IsHandled then
-                    exit;
-
-                case Rec."Client Type" of
-                    "DEMO Rental Client Type"::Customer, "DEMO Rental Client Type"::Employee:
-                        Rec.FieldError("Client Type");
-                    "DEMO Rental Client Type"::Contact:
-                        if not Confirm(ConfirmChangeQst, false, Rec."Posting Group Mandatory") then
-                            Error('');
-                end;
+                ClientType := Rec."Client Type";
+                if not ClientType.AllowChangePostingGroupMandatory() then
+                    Rec.FieldError("Posting Group Mandatory");
             end;
         }
 
@@ -286,67 +193,18 @@ table 50010 "DEMO Rental Journal Line"
                 Resource: Record Resource;
                 FixedAsset: Record "Fixed Asset";
                 RentalSetup: Record "DEMO Rental Setup";
-                IsHandled: Boolean;
+                ObjectType: Interface "DEMO Rental Object Type";
             begin
-                OnValidateNo(Rec, xRec, IsHandled);
-                if IsHandled then
-                    exit;
-
                 if Rec."No." <> xRec."No." then
                     ClearObjectFields();
 
                 if Rec."No." = '' then
                     exit;
 
-                case Type of
-                    "DEMO Rental Object Type"::Item:
-                        begin
-                            Item.Get(Rec."No.");
-                            Item.TestField("Gen. Prod. Posting Group");
-                            Item.TestField("Inventory Posting Group");
-                            Item.TestField("DEMO Rental Unit of Measure");
-                            Item.TestField(Blocked, false);
-
-                            Rec.Description := Item.Description;
-                            Rec."Gen. Product Posting Group" := Item."Gen. Prod. Posting Group";
-                            Rec."Unit of Measure Code" := Item."DEMO Rental Unit of Measure";
-                        end;
-
-                    "DEMO Rental Object Type"::Resource:
-                        begin
-                            Resource.Get(Rec."No.");
-                            Resource.TestField("Gen. Prod. Posting Group");
-                            Resource.TestField("Base Unit of Measure");
-                            Resource.TestField(Blocked, false);
-
-                            Rec.Description := Resource.Name;
-                            Rec."Gen. Product Posting Group" := Resource."Gen. Prod. Posting Group";
-                            Rec."Unit of Measure Code" := Resource."Base Unit of Measure";
-                        end;
-
-                    "DEMO Rental Object Type"::FixedAsset:
-                        begin
-                            FixedAsset.Get(Rec."No.");
-                            FixedAsset.TestField(Blocked, false);
-                            FixedAsset.TestField(Inactive, false);
-                            FixedAsset.TestField(Acquired, true);
-                            FixedAsset.TestField(Insured, true);
-                            FixedAsset.TestField("Under Maintenance", false);
-                            FixedAsset.TestField("Component of Main Asset", '');
-                            if not (FixedAsset."Main Asset/Component" in ["FA Component Type"::" ", "FA Component Type"::"Main Asset"]) then
-                                FixedAsset.FieldError("Main Asset/Component");
-
-                            RentalSetup.Get();
-                            RentalSetup.TestField("FA Gen. Prod. Posting Group");
-
-                            Rec.Description := FixedAsset.Description;
-                            Rec."Gen. Product Posting Group" := RentalSetup."FA Gen. Prod. Posting Group";
-                            Rec."Location Code" := FixedAsset."FA Location Code";
-                            Rec.Quantity := 1;
-                            Rec."Quantity per Unit of Measure" := 1;
-                            Rec."Quantity (Base)" := 1;
-                        end;
-                end;
+                ObjectType := Rec.Type;
+                ObjectType.Initialize(Rec."No.");
+                ObjectType.ValidateRequirements();
+                ObjectType.AssignDefaults(Rec);
             end;
         }
 
@@ -387,33 +245,14 @@ table 50010 "DEMO Rental Journal Line"
 
             trigger OnValidate()
             var
-                ItemUoM: Record "Item Unit of Measure";
-                ResourceUoM: Record "Resource Unit of Measure";
-                IsHandled: Boolean;
-                CannotChangeUoMErr: Label 'You cannot change the unit of measure when %1 is %2.', Comment = '%1 is Type caption, %2 is Type value.';
+                ObjectType: Interface "DEMO Rental Object Type";
             begin
-                OnValidateUnitOfMeasureCode(Rec, xRec, IsHandled);
-                if IsHandled then
-                    exit;
-
                 if (Rec."Unit of Measure Code" = '') and (Rec."Unit of Measure Code" <> xRec."Unit of Measure Code") then begin
                     Rec."Quantity (Base)" := 0;
                 end;
 
-                case Rec.Type of
-                    "DEMO Rental Object Type"::Item:
-                        begin
-                            ItemUoM.Get(Rec."No.", Rec."Unit of Measure Code");
-                            Rec."Quantity per Unit of Measure" := ItemUoM."Qty. per Unit of Measure";
-                        end;
-                    "DEMO Rental Object Type"::Resource:
-                        begin
-                            ResourceUoM.Get(Rec."No.", Rec."Unit of Measure Code");
-                            Rec."Quantity per Unit of Measure" := ResourceUoM."Qty. per Unit of Measure";
-                        end;
-                    else
-                        Error(CannotChangeUoMErr, Rec.FieldCaption(Type), Rec.Type);
-                end;
+                ObjectType := Rec.Type;
+                ObjectType.ChangeUnitOfMeasure(Rec);
 
                 UpdateQuantityBase();
             end;
@@ -502,11 +341,6 @@ table 50010 "DEMO Rental Journal Line"
     end;
 
     [IntegrationEvent(true, false)]
-    local procedure OnValidateClientNo(var Rec: Record "DEMO Rental Journal Line"; var xRec: Record "DEMO Rental Journal Line"; var IsHandled: Boolean)
-    begin
-    end;
-
-    [IntegrationEvent(true, false)]
     local procedure OnValidateClientName(var Rec: Record "DEMO Rental Journal Line"; var xRec: Record "DEMO Rental Journal Line"; var IsHandled: Boolean)
     begin
     end;
@@ -521,28 +355,13 @@ table 50010 "DEMO Rental Journal Line"
     begin
     end;
 
-    [IntegrationEvent(true, false)]
-    local procedure OnValidatePostingGroupMandatory(var Rec: Record "DEMO Rental Journal Line"; var xRec: Record "DEMO Rental Journal Line"; var IsHandled: Boolean)
-    begin
-    end;
-
     [IntegrationEvent(false, false)]
     local procedure OnValidateType(var Rec: Record "DEMO Rental Journal Line"; var xRec: Record "DEMO Rental Journal Line"; var IsHandled: Boolean);
     begin
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure OnValidateNo(var Rec: Record "DEMO Rental Journal Line"; var xRec: Record "DEMO Rental Journal Line"; var IsHandled: Boolean);
-    begin
-    end;
-
-    [IntegrationEvent(false, false)]
     local procedure OnValidateQuantity(var Rec: Record "DEMO Rental Journal Line"; var xRec: Record "DEMO Rental Journal Line"; var IsHandled: Boolean);
-    begin
-    end;
-
-    [IntegrationEvent(false, false)]
-    local procedure OnValidateUnitOfMeasureCode(var Rec: Record "DEMO Rental Journal Line"; var xRec: Record "DEMO Rental Journal Line"; var IsHandled: Boolean);
     begin
     end;
 

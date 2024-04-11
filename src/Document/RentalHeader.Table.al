@@ -4,8 +4,6 @@ using Microsoft.Sales.Customer;
 using Microsoft.CRM.Contact;
 using Microsoft.HumanResources.Employee;
 using Microsoft.Finance.GeneralLedger.Setup;
-using Microsoft.HumanResources.Setup;
-using Microsoft.CRM.BusinessRelation;
 
 table 50007 "DEMO Rental Header"
 {
@@ -59,7 +57,6 @@ table 50007 "DEMO Rental Header"
                 Customer: Record Customer;
                 Contact, ContactCompany : Record Contact;
                 Employee: Record Employee;
-                RentalSetup: Record "DEMO Rental Setup";
                 ClientType: Interface "DEMO Rental Client Type";
             begin
                 if Rec."Client No." = '' then
@@ -142,20 +139,11 @@ table 50007 "DEMO Rental Header"
 
             trigger OnValidate()
             var
-                IsHandled: Boolean;
-                ConfirmChangeQst: Label 'Changing %1 is not recommended as it may affect posting. Do you want to continue?', Comment = '%1 is field name.';
+                ClientType: Interface "DEMO Rental Client Type";
             begin
-                OnValidatePostingGroupMandatory(Rec, xRec, IsHandled);
-                if IsHandled then
-                    exit;
-
-                case Rec."Client Type" of
-                    "DEMO Rental Client Type"::Customer, "DEMO Rental Client Type"::Employee:
-                        Rec.FieldError("Client Type");
-                    "DEMO Rental Client Type"::Contact:
-                        if not Confirm(ConfirmChangeQst, false, Rec."Posting Group Mandatory") then
-                            Error('');
-                end;
+                ClientType := Rec."Client Type";
+                if not ClientType.AllowChangePostingGroupMandatory() then
+                    Rec.FieldError("Posting Group Mandatory");
             end;
         }
     }
@@ -167,6 +155,7 @@ table 50007 "DEMO Rental Header"
             Clustered = true;
         }
     }
+
 
     [IntegrationEvent(true, false)]
     local procedure OnValidateClientType(var Rec: Record "DEMO Rental Header"; var xRec: Record "DEMO Rental Header"; var IsHandled: Boolean)
