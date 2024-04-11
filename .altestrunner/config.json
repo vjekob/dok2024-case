@@ -1,0 +1,16 @@
+{
+    "containerResultPath":  "",
+    "launchConfigName":  "Your own server",
+    "securePassword":  "",
+    "userName":  "",
+    "companyName":  "",
+    "testSuiteName":  "",
+    "vmUserName":  "",
+    "vmSecurePassword":  "",
+    "remoteContainerName":  "",
+    "dockerHost":  "",
+    "newPSSessionOptions":  "",
+    "testRunnerServiceUrl":  "",
+    "codeCoveragePath":  ".//.altestrunner//codecoverage.json",
+    "culture":  "en-US"
+}
